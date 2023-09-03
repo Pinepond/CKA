@@ -7,7 +7,7 @@ ETCD 정보는 기본적으로 /var/lib/etcd 에 저장된다.
 - Backup / Restore 파일이 위치할 경로 (ex: /data/etcd-snapshot.db, /data/etcd-snapshot-previous.db)
 - etcdctl 접속에 필요한 ca.crt / server.crt / server.key 파일 위치
 ### 풀이
-1. `kubectl config current-context` 로 현재 시스템 확인 후, 문제에서 제공한 시스템으로 접속 `ssh k8s-master`
+1. `kubectl config current-context` 로 현재 node 확인 후, 문제에서 제공한 시스템(node)으로 접속 `ssh k8s-master`
 2. /var/lib/etcd 의 etcd 정보를 문제에서 요청한 위치에 backup 한다.
     ```shell
     sudo ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
