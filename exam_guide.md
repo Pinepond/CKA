@@ -57,9 +57,16 @@ etcd, api, controller 등이 대표적이 static pod 이다.
 
 
 
-## 
+## Multi Container POD 생성하기
 ### 제공정보
+- 작업할 클러스터 : hk8s
+- pod name : lab004
+- container image list : nginx, redis, memcached
 ### 풀이
+1. context 변경 `kubectl config use-context hk8s`
+1. 이미지 1개를 참조하는 pod yaml 샘플 생성   
+`kubectl run lab004 --image=nginx --dry-run=client -o yaml > multi_pod.yaml`
+2. vi 를 통해 yaml 의 containers 에 redis, memcached 이미지 추가
 
 ## 
 ### 제공정보
