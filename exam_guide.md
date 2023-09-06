@@ -90,6 +90,27 @@ etcd, api, controller 등이 대표적이 static pod 이다.
    ```
 3. pod 재배포 `kubectl replace --force -f sidecar.yaml`
 
-## 
+## POD scale out
 ### 제공정보
+- cluster: hk8s
+- pod 명 : eshop-order
+- namespace: devops
+- deployment: eshop-order
 ### 풀이
+1. 작업 클러스터 변경 `kubectl config use-context k8s`
+2. Scale out 작업 수행 `kubectl scale deployment eshop-order --replicas=5 -n devops`
+
+## Deployment 생성 / scale out
+### 제공정보
+- cluster: hk8s
+- name : webserver
+- pod count: 2
+- label: app_env_stage=dev
+- container name: webserver
+- container image: nginx:1.14
+- pod 2개 짜리 생성 이후 3개로 scale out
+### 풀이
+1. `kubectl config use-context hk8s`
+2. `kubectl create deployment webserver --image nginx:1.14 --replicas=2 --dry-run=client -o yaml > dep.yaml`
+3. yaml 에서 label / matches label 수정 , 다른 값 정상여부 확인
+3. `kubectl scale deployment webserver --replicas=3`
