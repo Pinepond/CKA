@@ -68,9 +68,27 @@ etcd, api, controller 등이 대표적이 static pod 이다.
 `kubectl run lab004 --image=nginx --dry-run=client -o yaml > multi_pod.yaml`
 2. vi 를 통해 yaml 의 containers 에 redis, memcached 이미지 추가
 
-## 
+## Side Car Container POD 생성하기
 ### 제공정보
+- sidecar name: sidecar
+- image: busybox
+- targetPod: eshop-cart-app
+- command: /bin/sh -c 'tail -n+1 -F /var/log/eshop-app.log'
+- volume: /var/log
+- log file: cart-app.log
 ### 풀이
+1. running 중인 pod 에서 yaml 추출 `kubectl get pod eshop-cart-app -o yaml > sidecar.yaml`
+2. yaml 에 sidecar container 추가
+    ```shell
+   # 아래 내용을 containers 하위에 추가
+   - name: sidecar
+     image: busybox
+     args: [/bin/sh, -c, 'tail -n+1 -F /var/log/eshop-app.log']
+     volumeMounts:
+     - name: varlog
+       mountPath: /var/log
+   ```
+3. pod 재배포 `kubectl replace --force -f sidecar.yaml`
 
 ## 
 ### 제공정보
