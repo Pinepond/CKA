@@ -102,15 +102,31 @@ etcd, api, controller 등이 대표적이 static pod 이다.
 
 ## Deployment 생성 / scale out
 ### 제공정보
-- cluster: hk8s
+- cluster: k8s
 - name : webserver
-- pod count: 2
+- replicas: 2
 - label: app_env_stage=dev
 - container name: webserver
 - container image: nginx:1.14
 - pod 2개 짜리 생성 이후 3개로 scale out
 ### 풀이
-1. `kubectl config use-context hk8s`
+1. `kubectl config use-context k8s`
 2. `kubectl create deployment webserver --image nginx:1.14 --replicas=2 --dry-run=client -o yaml > dep.yaml`
 3. yaml 에서 label / matches label 수정 , 다른 값 정상여부 확인
 3. `kubectl scale deployment webserver --replicas=3`
+
+## Rolling update & roll back
+### 제공정보
+- cluster: k8s
+- name : nginx-app
+- image: nginx:1.11.10-alpine
+- replicas: 3
+- deployment 생성 후 nginx 버전 변경 1.11.13-alpine
+### 풀이
+1. `kubectl config use-context k8s`
+2. `kubectl create deployment nginx-app --image nginx:1.11.10-alpine --replicas=3 --dry-run=client -o yaml > dep.yaml`
+3. `kubectl apply -f dep.yaml`
+4. `kubectl set image deployment nginx-app nginx=nginx:1.11.13-alpine --record`
+5. `kubectl rollout history deployment nginx-app`
+5. `kubectl rollout undo deployment nginx-app`
+6. `kubectl rollout history deployment nginx-app`
