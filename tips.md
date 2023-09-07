@@ -32,3 +32,19 @@ current-context 를 변경해 작업하는것이 수월하다.
 kubectl config set-context {현재 namespace} --namespace={앞으로 사용할 namespace}
 kubectl config set-context $(kubectl config current-context) --namespace=dev
 ```
+
+## Node 관련 명령어 정리
+```shell
+# node 목록
+kubectl get nodes -o wide
+# node 상세정보
+kubectl describe node {NODE_NAME}
+# 특정 NODE POD 할당 금지 (scheduling disable) - 기존에 할당된 POD 는 그대로 수행
+kubectl cordon {NODE_NAME}
+kubectl uncordon {NODE_NAME} # cordon 해제
+# 특정 Node 에서 POD 를 모두 비우고, Scheduling disable 함
+# Deployment 를 통해 실행중인 POD 는 다른 node 로 옮겨감
+# 단독 POD 는 그냥 삭제됨
+# 다시 scheduling 하고싶은 경우 uncordon 수행
+kubectl drain {NODE_NAME} --ignore-daemonset
+```

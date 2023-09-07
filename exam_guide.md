@@ -1,4 +1,8 @@
 # 시험 문제 유형
+
+## Youtube ttabae-learn 의 CKA 강의자료를 참고하여 작성한 내용입니다.
+https://www.youtube.com/@ttabae-learn4274
+
 ## ETCD Backup & Restore
 ETCD 정보는 기본적으로 /var/lib/etcd 에 저장된다.
 작업시에는 sudo 명령어를 사용해야 한다.(root 권한 필요)
@@ -123,10 +127,71 @@ etcd, api, controller 등이 대표적이 static pod 이다.
 - replicas: 3
 - deployment 생성 후 nginx 버전 변경 1.11.13-alpine
 ### 풀이
-1. `kubectl config use-context k8s`
-2. `kubectl create deployment nginx-app --image nginx:1.11.10-alpine --replicas=3 --dry-run=client -o yaml > dep.yaml`
-3. `kubectl apply -f dep.yaml`
-4. `kubectl set image deployment nginx-app nginx=nginx:1.11.13-alpine --record`
-5. `kubectl rollout history deployment nginx-app`
-5. `kubectl rollout undo deployment nginx-app`
-6. `kubectl rollout history deployment nginx-app`
+```shell
+kubectl config use-context k8s
+kubectl create deployment nginx-app --image nginx:1.11.10-alpine --replicas=3 --dry-run=client -o yaml > dep.yaml
+kubectl apply -f dep.yaml
+kubectl set image deployment nginx-app nginx=nginx:1.11.13-alpine --record
+kubectl rollout history deployment nginx-app
+kubectl rollout undo deployment nginx-app
+kubectl rollout history deployment nginx-app
+```
+
+## Node Selector
+POD 를 특정 Node 에 띄우는 케이스
+Node 에 달린 label 을 selector 에 입력해준다.
+### 제공정보
+- cluster: k8s
+- pod name: eshop-store
+- image: nginx
+- node selector: disktype=ssd
+### 풀이
+```shell
+kubectl config use-contect k8s
+# node 의 label 중 disktype 을 컬럼으로 보여준다.
+kubectl get nodes -L disktype
+kubectl run eshop-store --image nginx --dry-run=client -o yaml > pod.yaml
+# containers 와 동일한 level 에 node selector 추가
+nodeSelector:
+  disktype=ssd 
+kubectl apply -f pod.yaml
+```
+
+## Node 관리
+### 제공정보
+- cluster: k8s-worker1
+- node: k8s-worker1
+- k8s-worker1 as unavailable and reschedule all the pods running on it.
+### 풀이
+kubectl config use-context k8s-worker1
+kubectl drain k8s-worker1 --ignore-daemonset --force
+
+## Node 정보 수집
+### 제공정보
+ready 상태 노드 숫자를 특정 파일에 저장하기 (no schedule 상태인것은 제외)
+### 풀이
+kubectl get nodes -o wide
+kubectl describe node k8s-node1 | grep -i noSchedule
+kubectl describe node k8s-node2 | grep -i noSchedule
+kubectl describe node k8s-node2 | grep -i taints
+echo "1" > /filePath
+
+## Deploment & service expose
+### 제공정보
+- cluster: k8s
+- 기동중인 front-end deployment 에 http 라는이름의 80/tcp port expose
+- front-end-svc 생성 위에서 추가한 http port 를 사용하며, node port 유형임
+### 풀이
+> docs 에서 service 로 검색하면 deployment 와 svc 통합된 yaml 샘플 확인가능
+
+kubectl config use-context k8s
+kubectl get deployment front-end -o yaml > dep.yaml
+```yaml
+containers:
+- name: http
+  image: nginx
+  ports:
+  - containerPort: 80
+    name: http
+```
+kubectl create service front-end-svc --dry-run=client -o yaml > svc.yaml
