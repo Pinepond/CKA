@@ -285,3 +285,187 @@ external_url=cncf.io
    ```
 - pod 에 env 명령 수행하여 정상 적용여부 확인  
 `kubectl exec -n ckad web-pod -- env`
+
+## Secret 운영
+### 제공정보
+- Secret 생성 
+  - name: super-secret
+  - data: password=secretpass
+- pod 생성 1
+  - name: pod-secrets-via-file
+  - iamge: redis
+  - mount path: /secrets
+- pod 생성 1
+  - name: pod-secrets-via-env
+  - iamge: redis
+  - export password as PASSWORD env
+### 풀이
+- Secret 생성  
+`kubectl create secret generic super-secret --from-literal=password=secretpass`  
+`kubectl get secret super-secret -o yaml`
+- pod 1 - secret 파일 마운트
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod-secrets-via-file
+    spec:
+      containers:
+      - name: pod-secrets-via-file
+        image: redis
+        volumeMounts:
+        - name: super-secret
+          mountPath: "/secrets"
+      volumes:
+      - name: super-secret
+        secret:
+          secretName: super-secret
+    ```
+  `kubectl exec -it pod-secrets-via-file -- cat /secrets/password`
+- pod 2 - 환경변수 사용
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: pod-secrets-via-env
+    spec:
+      containers:
+      - name: pod-secrets-via-env
+        image: redis
+        env:
+          - name: PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: super-secret
+                key: password
+    ```
+  `kubectl exec -it pod-secrets-via-env -- env`
+
+## ingress
+### 제공정보
+- nginx pod 생성
+  - namespace: ingress-nginx
+  - image: nginx
+  - label: app=nginx
+- nginx service 생성
+- ingress 구성
+  - name : app-ingress
+  - 30080/ 접속시 nginx 로 연결
+  - 30080/app 접속시 appjs-service 로 연결
+  - annotation 포함
+     ```yaml
+    annotations:
+      kubernetes.io/ingress.class: nginx
+     ```
+### 풀이
+- nginx pod 생성  
+`kubectl run nginx --image=nginx -l=app=nginx --port=80 -n ingress-nginx`
+- nginx service 생성  
+`kubectl expose pod -n  ingress-nginx pod nginx --port 80 --target-port 80`
+- ingress 구성
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: app-ingress
+      namespace: ingress-nginx
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        kubernetes.io/ingress.class: nginx
+    spec:
+      rules:
+      - http:
+          paths:
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: appjs-service
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx
+                port:
+                  number: 80
+    ```
+  `curl k8s-worker1:30080`  
+  `curl k8s-worker1:30080/app`
+
+## Persistent Volume
+### 제공정보
+- Persistent Volume 생성
+  - name: app-config
+  - capacity: 1G
+  - access mode: ReadWriteMany
+  - storage class: az-c
+  - volume type: hostPath , /srv/app-config
+### 풀이
+- pv 생성
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: app-config
+      labels:
+        type: local
+    spec:
+      storageClassName: az-c
+      capacity:
+        storage: 1Gi
+      accessModes:
+        - ReadWriteMany
+      hostPath:
+        path: "/srv/app-config"
+    ```
+- pv 확인  
+`kubectl get pv`
+
+## PVC 사용하는 POD 생성
+### 제공정보
+- PVC 생성
+  - name: app-volume
+  - storage class: app-hostpath-sc
+  - capacity: 10Mi
+- Pod 생성
+  - name: web-server-pod
+  - image: nginx
+  - mountpath: /usr/share/nginx/html
+- 생성되는 pod 는 ReadWriteMany access 가능해야함
+### 풀이
+- PVC 생성
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: app-volume
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 10Mi
+      storageClassName: app-hostpath-sc
+    ```
+    `kubectl get pvc`
+- POD 생성
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: web-server-pod
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:
+          - mountPath: "/usr/share/nginx/html"
+            name: mypd
+      volumes:
+        - name: mypd
+          persistentVolumeClaim:
+            claimName: app-volume
+    ```
+    `kubectl describe pod web-server-pod`
